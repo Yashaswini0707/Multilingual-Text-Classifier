@@ -1,8 +1,9 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, render_template, send_from_directory
 from flask_cors import CORS
 import random
+import os
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder="static", template_folder="templates")
 CORS(app)
 
 def mock_detect_language(text):
@@ -39,11 +40,11 @@ def mock_detect_language(text):
     elif any(char in text for char in ['ਅ', 'ਆ', 'ਇ', 'ਈ', 'ਉ', 'ਊ', 'ਏ', 'ਐ', 'ਓ', 'ਔ', 'ਕ', 'ਖ', 'ਗ', 'ਘ', 'ਙ', 'ਚ', 'ਛ', 'ਜ', 'ਝ', 'ਞ', 'ਟ', 'ਠ', 'ਡ', 'ਢ', 'ਣ', 'ਤ', 'ਥ', 'ਦ', 'ਧ', 'ਨ', 'ਪ', 'ਫ', 'ਬ', 'ਭ', 'ਮ', 'ਯ', 'ਰ', 'ਲ', 'ਵ', 'ਸ', 'ਹ', 'ੜ']):
         return "Punjabi", 0.86
     
-    # Marathi (uses Devanagari like Hindi)
-    elif any(char in text for char in ['मराठी', 'महाराष्ट्र', 'पुणे', 'मुंबई']):
+    # Marathi (keywords)
+    elif any(word in text for word in ['मराठी', 'महाराष्ट्र', 'पुणे', 'मुंबई']):
         return "Marathi", 0.93
     
-    # Urdu (Perso-Arabic script)
+    # Urdu
     elif any(char in text for char in ['ا', 'ب', 'ت', 'ث', 'ج', 'ح', 'خ', 'د', 'ذ', 'ر', 'ز', 'س', 'ش', 'ص', 'ض', 'ط', 'ظ', 'ع', 'غ', 'ف', 'ق', 'ک', 'گ', 'ل', 'م', 'ن', 'و', 'ہ', 'ی', 'ے']):
         return "Urdu", 0.93
     
@@ -55,14 +56,22 @@ def mock_detect_language(text):
     elif any(char in text for char in ['ଅ', 'ଆ', 'ଇ', 'ଈ', 'ଉ', 'ଊ', 'ଋ', 'ଏ', 'ଐ', 'ଓ', 'ଔ', 'କ', 'ଖ', 'ଗ', 'ଘ', 'ଙ', 'ଚ', 'ଛ', 'ଜ', 'ଝ', 'ଞ', 'ଟ', 'ଠ', 'ଡ', 'ଢ', 'ଣ', 'ତ', 'ଥ', 'ଦ', 'ଧ', 'ନ', 'ପ', 'ଫ', 'ବ', 'ଭ', 'ମ', 'ଯ', 'ର', 'ଲ', 'ଶ', 'ଷ', 'ସ', 'ହ', 'ଡ଼', 'ଢ଼', 'ୟ', 'ୱ']):
         return "Odia", 0.84
     
-    # English
+    # English (keywords)
     elif text.lower() in ['hello', 'hi', 'goodbye', 'thanks', 'please', 'yes', 'no', 'okay', 'welcome']:
         return "English", 0.98
     
+    # Unknown
     else:
-        # Random language for unknown text
         languages = ["English", "Hindi", "Kannada", "Telugu", "Tamil", "Malayalam", "Bengali", "Gujarati", "Punjabi", "Marathi", "Urdu", "Assamese", "Odia"]
         return random.choice(languages), random.uniform(0.7, 0.95)
+
+# === NEW HOME ROUTE ===
+@app.route("/")
+def home():
+    # if index.html is in templates/
+    return render_template("index.html")
+    # if it's in static/, comment above and uncomment below
+    # return send_from_directory(app.static_folder, "index.html")
 
 @app.route('/api/detect', methods=['POST'])
 def detect():
@@ -109,8 +118,6 @@ def health():
     return jsonify({'status': 'healthy', 'mode': 'mock'})
 
 if __name__ == '__main__':
-    import os
     port = int(os.environ.get("PORT", 5000))
     print(f"🚀 Language Detection Tool Starting on port {port}...")
     app.run(host="0.0.0.0", port=port, debug=False)
-
