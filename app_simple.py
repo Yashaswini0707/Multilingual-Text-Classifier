@@ -65,13 +65,11 @@ def mock_detect_language(text):
         languages = ["English", "Hindi", "Kannada", "Telugu", "Tamil", "Malayalam", "Bengali", "Gujarati", "Punjabi", "Marathi", "Urdu", "Assamese", "Odia"]
         return random.choice(languages), random.uniform(0.7, 0.95)
 
-# === NEW HOME ROUTE ===
 @app.route("/")
 def home():
-    # if index.html is in templates/
-    return render_template("index.html")
-    # if it's in static/, comment above and uncomment below
-    # return send_from_directory(app.static_folder, "index.html")
+    with open("index.html", "r") as f:   # make sure index.html is in project root
+        return f.read()
+
 
 @app.route('/api/detect', methods=['POST'])
 def detect():
