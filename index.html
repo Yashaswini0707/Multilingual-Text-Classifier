@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LangDetect</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            min-height: 100vh;
+            color: #333;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            margin-bottom: 15px;
+            text-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            background: linear-gradient(45deg, #fff, #f0f0f0, #fff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: shimmer 3s ease-in-out infinite;
+        }
+
+        @keyframes shimmer {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .header p {
+            font-size: 1.3rem;
+            opacity: 0.95;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            font-weight: 300;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .detection-panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 25px;
+            padding: 35px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .detection-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+            border-radius: 25px 25px 0 0;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        .input-group {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .text-input {
+            width: 100%;
+            padding: 18px 25px;
+            border: 2px solid rgba(225, 229, 233, 0.8);
+            border-radius: 15px;
+            font-size: 16px;
+            transition: all 0.4s ease;
+            background: rgba(248, 249, 250, 0.8);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        .text-input:focus {
+            outline: none;
+            border-color: #667eea;
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 0 0 0 4px rgba(102, 126, 234, 0.15), 0 8px 25px rgba(102, 126, 234, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .detect-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            font-size: 18px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+        }
+
+        .detect-btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.4);
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 50%, #e085e8 100%);
+        }
+
+        .detect-btn:active {
+            transform: translateY(-1px);
+        }
+
+        .detect-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .detect-btn:hover::before {
+            left: 100%;
+        }
+
+        .detect-btn.loading {
+            pointer-events: none;
+        }
+
+        .detect-btn.loading::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            top: 50%;
+            left: 50%;
+            margin-left: -10px;
+            margin-top: -10px;
+            border: 2px solid transparent;
+            border-top: 2px solid white;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .result-section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .result-section.show {
+            display: block;
+            animation: slideIn 0.5s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .result-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e1e5e9;
+        }
+
+        .result-item:last-child {
+            border-bottom: none;
+        }
+
+        .result-label {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .result-value {
+            font-weight: 500;
+            color: #212529;
+        }
+
+        .confidence-bar {
+            width: 100%;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #20c997, #17a2b8);
+            border-radius: 4px;
+            transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .confidence-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        .samples-panel {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 25px;
+            padding: 35px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.15);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .samples-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #f093fb, #764ba2, #667eea);
+            border-radius: 25px 25px 0 0;
+        }
+
+        .samples-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            color: #495057;
+        }
+
+        .samples-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .sample-card {
+            background: linear-gradient(135deg, rgba(248, 249, 250, 0.9), rgba(255, 255, 255, 0.8));
+            border: 2px solid rgba(233, 236, 239, 0.8);
+            border-radius: 15px;
+            padding: 20px;
+            cursor: pointer;
+            transition: all 0.4s ease;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sample-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+            transform: scaleX(0);
+            transition: transform 0.3s ease;
+        }
+
+        .sample-card:hover {
+            border-color: #667eea;
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 15px 35px rgba(102, 126, 234, 0.25);
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(248, 249, 250, 0.9));
+        }
+
+        .sample-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .sample-text {
+            font-size: 1.2rem;
+            font-weight: 600;
+            margin-bottom: 5px;
+            color: #495057;
+        }
+
+        .sample-language {
+            font-size: 0.9rem;
+            color: #6c757d;
+            font-weight: 500;
+        }
+
+        .sample-description {
+            font-size: 0.8rem;
+            color: #adb5bd;
+            margin-top: 5px;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 1px solid #f5c6cb;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            border: 1px solid #c3e6cb;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .header h1 {
+                font-size: 2rem;
+            }
+
+            .container {
+                padding: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-language"></i>LangDetect</h1>
+            <p> Detect. Understand. Connect.</p>
+        </div>
+
+        <div class="main-content">
+            <div class="detection-panel">
+                <div class="input-section">
+                    <div class="input-group">
+                        <textarea 
+                            class="text-input" 
+                            id="textInput" 
+                            placeholder="Enter text to detect language..."
+                            rows="4"
+                        ></textarea>
+                    </div>
+                    <button class="detect-btn" id="detectBtn">
+                        <i class="fas fa-search"></i> Detect Language
+                    </button>
+                </div>
+
+                <div class="result-section" id="resultSection">
+                    <div class="result-item">
+                        <span class="result-label">Detected Language:</span>
+                        <span class="result-value" id="detectedLanguage">-</span>
+                    </div>
+                    <div class="result-item">
+                        <span class="result-label">Confidence:</span>
+                        <span class="result-value" id="confidenceValue">-</span>
+                    </div>
+                    <div class="confidence-bar">
+                        <div class="confidence-fill" id="confidenceBar"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="samples-panel">
+                <h3 class="samples-title">
+                    <i class="fas fa-lightbulb"></i> Sample Texts
+                </h3>
+                <div class="samples-grid" id="samplesGrid">
+                    <!-- Sample cards will be populated here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class LanguageDetector {
+            constructor() {
+                this.apiUrl = 'http://localhost:5000/api';
+                this.init();
+            }
+
+            init() {
+                this.bindEvents();
+                this.loadSamples();
+            }
+
+            bindEvents() {
+                const detectBtn = document.getElementById('detectBtn');
+                const textInput = document.getElementById('textInput');
+
+                detectBtn.addEventListener('click', () => this.detectLanguage());
+                textInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && e.ctrlKey) {
+                        this.detectLanguage();
+                    }
+                });
+            }
+
+            async loadSamples() {
+                try {
+                    const response = await fetch(`${this.apiUrl}/samples`);
+                    const samples = await response.json();
+                    this.renderSamples(samples);
+                } catch (error) {
+                    console.error('Error loading samples:', error);
+                }
+            }
+
+            renderSamples(samples) {
+                const grid = document.getElementById('samplesGrid');
+                grid.innerHTML = samples.map(sample => `
+                    <div class="sample-card" onclick="detector.useSample('${sample.text}')">
+                        <div class="sample-text">${sample.text}</div>
+                        <div class="sample-language">${sample.language}</div>
+                        <div class="sample-description">${sample.description}</div>
+                    </div>
+                `).join('');
+            }
+
+            useSample(text) {
+                document.getElementById('textInput').value = text;
+                this.detectLanguage();
+            }
+
+            async detectLanguage() {
+                const text = document.getElementById('textInput').value.trim();
+                if (!text) {
+                    this.showError('Please enter some text to detect.');
+                    return;
+                }
+
+                this.setLoading(true);
+                this.hideResult();
+
+                try {
+                    const response = await fetch(`${this.apiUrl}/detect`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({ text })
+                    });
+
+                    const result = await response.json();
+
+                    if (response.ok) {
+                        this.showResult(result);
+                    } else {
+                        this.showError(result.error || 'Detection failed');
+                    }
+                } catch (error) {
+                    this.showError('Network error. Please check if the server is running.');
+                } finally {
+                    this.setLoading(false);
+                }
+            }
+
+            showResult(result) {
+                const resultSection = document.getElementById('resultSection');
+                const detectedLanguage = document.getElementById('detectedLanguage');
+                const confidenceValue = document.getElementById('confidenceValue');
+                const confidenceBar = document.getElementById('confidenceBar');
+
+                detectedLanguage.textContent = result.language;
+                confidenceValue.textContent = `${result.confidence_percentage}%`;
+                confidenceBar.style.width = `${result.confidence_percentage}%`;
+
+                resultSection.classList.add('show');
+            }
+
+            hideResult() {
+                const resultSection = document.getElementById('resultSection');
+                resultSection.classList.remove('show');
+            }
+
+            showError(message) {
+                const resultSection = document.getElementById('resultSection');
+                resultSection.innerHTML = `
+                    <div class="error-message">
+                        <i class="fas fa-exclamation-triangle"></i> ${message}
+                    </div>
+                `;
+                resultSection.classList.add('show');
+            }
+
+            setLoading(loading) {
+                const btn = document.getElementById('detectBtn');
+                const overlay = document.getElementById('loadingOverlay');
+
+                if (loading) {
+                    btn.classList.add('loading');
+                    btn.innerHTML = 'Detecting...';
+                    overlay.style.display = 'flex';
+                } else {
+                    btn.classList.remove('loading');
+                    btn.innerHTML = '<i class="fas fa-search"></i> Detect Language';
+                    overlay.style.display = 'none';
+                }
+            }
+        }
+
+        // Initialize the application
+        const detector = new LanguageDetector();
+    </script>
+</body>
+</html>
